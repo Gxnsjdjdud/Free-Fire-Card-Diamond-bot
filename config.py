@@ -15,7 +15,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 
 # Main Owner/Admin Telegram ID
-OWNER_ID = int(os.getenv("OWNER_ID", "8136997138"))
+OWNER_ID = int(os.getenv("OWNER_ID", "123456789"))
 
 # Additional admins can be added from the dashboard/database.
 # Do not put their IDs here unless you want static admins.
