@@ -47,47 +47,79 @@ logger = logging.getLogger(__name__)
 # MAIN
 # ============================================================
 
-async def startup():
-
-    logger.info("Initializing database...")
-
-    await init_db()
-
-    logger.info("Database initialized successfully.")
-
-
 def main():
 
     logger.info(
         "Starting Free Fire Diamond Top-Up Bot..."
     )
 
-    # Initialize database
-    asyncio.run(startup())
+    # --------------------------------------------------------
+    # Create a new event loop for Python 3.13 compatibility
+    # --------------------------------------------------------
 
-    # Create Telegram application
-    application = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .build()
-    )
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    # Register handlers
-    register_handlers(application)
+    try:
 
-    logger.info(
-        "All handlers registered successfully."
-    )
+        # ----------------------------------------------------
+        # Initialize database
+        # ----------------------------------------------------
 
-    logger.info(
-        "Bot is now running..."
-    )
+        logger.info("Initializing database...")
 
-    # Start Telegram polling
-    application.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-    )
+        loop.run_until_complete(
+            init_db()
+        )
+
+        logger.info(
+            "Database initialized successfully."
+        )
+
+        # ----------------------------------------------------
+        # Create Telegram application
+        # ----------------------------------------------------
+
+        application = (
+            Application.builder()
+            .token(BOT_TOKEN)
+            .build()
+        )
+
+        # ----------------------------------------------------
+        # Register handlers
+        # ----------------------------------------------------
+
+        register_handlers(application)
+
+        logger.info(
+            "All handlers registered successfully."
+        )
+
+        logger.info(
+            "Bot is now running..."
+        )
+
+        # ----------------------------------------------------
+        # Start Telegram polling
+        # ----------------------------------------------------
+
+        application.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,
+            close_loop=False,
+        )
+
+    finally:
+
+        # ----------------------------------------------------
+        # Cleanup
+        # ----------------------------------------------------
+
+        try:
+            loop.close()
+        except Exception:
+            pass
 
 
 # ============================================================
