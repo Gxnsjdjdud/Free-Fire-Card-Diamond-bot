@@ -1,18 +1,18 @@
 # ============================================================
 # bot.py
 # FREE FIRE DIAMOND TOP-UP BOT
-# MAIN ENTRY FILE
 # ============================================================
 
 import os
 import logging
+import asyncio
+
 from dotenv import load_dotenv
 
 from telegram import Update
-from telegram.ext import (
-    Application,
-)
+from telegram.ext import Application
 
+from database import init_db
 from handlers import register_handlers
 
 
@@ -27,7 +27,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise RuntimeError(
         "BOT_TOKEN is missing. "
-        "Add BOT_TOKEN to Railway Variables or .env"
+        "Add BOT_TOKEN in Railway Variables."
     )
 
 
@@ -36,12 +36,7 @@ if not BOT_TOKEN:
 # ============================================================
 
 logging.basicConfig(
-    format=(
-        "%(asctime)s - "
-        "%(name)s - "
-        "%(levelname)s - "
-        "%(message)s"
-    ),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
 
@@ -52,9 +47,23 @@ logger = logging.getLogger(__name__)
 # MAIN
 # ============================================================
 
+async def startup():
+
+    logger.info("Initializing database...")
+
+    await init_db()
+
+    logger.info("Database initialized successfully.")
+
+
 def main():
 
-    logger.info("Starting Free Fire Diamond Bot...")
+    logger.info(
+        "Starting Free Fire Diamond Top-Up Bot..."
+    )
+
+    # Initialize database
+    asyncio.run(startup())
 
     # Create Telegram application
     application = (
@@ -63,7 +72,7 @@ def main():
         .build()
     )
 
-    # Register all handlers
+    # Register handlers
     register_handlers(application)
 
     logger.info(
@@ -71,10 +80,10 @@ def main():
     )
 
     logger.info(
-        "Free Fire Diamond Bot is running..."
+        "Bot is now running..."
     )
 
-    # Start bot
+    # Start Telegram polling
     application.run_polling(
         allowed_updates=Update.ALL_TYPES,
         drop_pending_updates=True,
