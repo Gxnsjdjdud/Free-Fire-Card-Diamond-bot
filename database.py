@@ -1,12 +1,21 @@
 # ============================================================
 # database.py
 # FREE FIRE DIAMOND TOP-UP BOT
+# FULL DATABASE
 # ============================================================
 
 import aiosqlite
 from datetime import datetime
 
-from config import DATABASE
+from config import DATABASE, OWNER_ID
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def now():
+    return datetime.now().isoformat()
 
 
 # ============================================================
@@ -14,6 +23,7 @@ from config import DATABASE
 # ============================================================
 
 async def get_db():
+
     db = await aiosqlite.connect(DATABASE)
 
     db.row_factory = aiosqlite.Row
@@ -31,15 +41,16 @@ async def init_db():
 
     db = await get_db()
 
-    # --------------------------------------------------------
+    # ========================================================
     # USERS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
             username TEXT,
             first_name TEXT,
+            last_name TEXT,
             balance REAL DEFAULT 0,
             total_deposit REAL DEFAULT 0,
             total_spent REAL DEFAULT 0,
@@ -52,9 +63,9 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # ADMINS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS admins (
@@ -65,55 +76,40 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # OFFERS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS offers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             name TEXT NOT NULL,
             diamonds TEXT NOT NULL,
-
             price REAL NOT NULL,
-
             button_name TEXT NOT NULL,
-
-            description TEXT,
-            delivery_time TEXT,
-
+            description TEXT DEFAULT '',
+            delivery_time TEXT DEFAULT 'Manual',
             image_file_id TEXT,
-
             is_active INTEGER DEFAULT 1,
-
             created_at TEXT,
             updated_at TEXT
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # DEPOSITS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS deposits (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             user_id INTEGER NOT NULL,
-
             amount REAL NOT NULL,
-
-            method TEXT NOT NULL,
-
+            method TEXT DEFAULT 'manual',
             transaction_id TEXT NOT NULL UNIQUE,
-
             status TEXT DEFAULT 'pending',
-
             admin_id INTEGER,
-
             admin_note TEXT,
-
             created_at TEXT,
             updated_at TEXT,
 
@@ -122,36 +118,24 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # ORDERS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             order_code TEXT UNIQUE NOT NULL,
-
             user_id INTEGER NOT NULL,
-
             offer_id INTEGER,
-
             offer_name TEXT,
-
             diamonds TEXT,
-
-            price REAL,
-
+            price REAL DEFAULT 0,
             uid TEXT,
-
             player_name TEXT,
-
             status TEXT DEFAULT 'pending',
-
             admin_id INTEGER,
-
             admin_note TEXT,
-
             created_at TEXT,
             updated_at TEXT,
             completed_at TEXT,
@@ -164,30 +148,21 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # BALANCE TRANSACTIONS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS balance_transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             user_id INTEGER NOT NULL,
-
             amount REAL NOT NULL,
-
             balance_before REAL NOT NULL,
-
             balance_after REAL NOT NULL,
-
             transaction_type TEXT NOT NULL,
-
             reference_id TEXT,
-
             description TEXT,
-
             admin_id INTEGER,
-
             created_at TEXT,
 
             FOREIGN KEY(user_id)
@@ -195,44 +170,33 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # PROMO CODES
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS promo_codes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             code TEXT UNIQUE NOT NULL,
-
             discount REAL DEFAULT 0,
-
             minimum_purchase REAL DEFAULT 0,
-
             max_uses INTEGER DEFAULT 0,
-
             used_count INTEGER DEFAULT 0,
-
             expires_at TEXT,
-
             is_active INTEGER DEFAULT 1,
-
             created_at TEXT
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # PROMO USAGE
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS promo_usage (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             promo_id INTEGER NOT NULL,
-
             user_id INTEGER NOT NULL,
-
             used_at TEXT,
 
             UNIQUE(promo_id, user_id),
@@ -245,20 +209,16 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # REFERRALS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS referrals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             referrer_id INTEGER NOT NULL,
-
             referred_id INTEGER NOT NULL UNIQUE,
-
             reward REAL DEFAULT 0,
-
             created_at TEXT,
 
             FOREIGN KEY(referrer_id)
@@ -269,53 +229,41 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
-    # BROADCAST LOG
-    # --------------------------------------------------------
+    # ========================================================
+    # BROADCASTS
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS broadcasts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             admin_id INTEGER,
-
             message TEXT,
-
             target TEXT,
-
             sent_count INTEGER DEFAULT 0,
-
             failed_count INTEGER DEFAULT 0,
-
             created_at TEXT
         )
     """)
 
-    # --------------------------------------------------------
-    # ADMIN LOG
-    # --------------------------------------------------------
+    # ========================================================
+    # ADMIN LOGS
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS admin_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             admin_id INTEGER,
-
             action TEXT,
-
             target_user_id INTEGER,
-
             reference_id TEXT,
-
             details TEXT,
-
             created_at TEXT
         )
     """)
 
-    # --------------------------------------------------------
+    # ========================================================
     # SETTINGS
-    # --------------------------------------------------------
+    # ========================================================
 
     await db.execute("""
         CREATE TABLE IF NOT EXISTS settings (
@@ -324,9 +272,9 @@ async def init_db():
         )
     """)
 
-    # --------------------------------------------------------
-    # SUPPORT / PAYMENT SETTINGS
-    # --------------------------------------------------------
+    # ========================================================
+    # DEFAULT SETTINGS
+    # ========================================================
 
     default_settings = {
 
@@ -342,7 +290,6 @@ async def init_db():
         "new_offer_notification": "1",
 
         "referral_enabled": "1",
-
         "referral_reward": "5",
 
         "min_deposit": "10",
@@ -354,31 +301,37 @@ async def init_db():
     for key, value in default_settings.items():
 
         await db.execute("""
-            INSERT OR IGNORE INTO settings (key, value)
+            INSERT OR IGNORE INTO settings
+            (key, value)
             VALUES (?, ?)
-        """, (key, value))
+        """, (
+            key,
+            value
+        ))
 
-    # --------------------------------------------------------
-    # CREATE OWNER ADMIN
-    # --------------------------------------------------------
+    # ========================================================
+    # OWNER
+    # ========================================================
 
-    from config import OWNER_ID
-
-    now = datetime.now().isoformat()
+    current_time = now()
 
     await db.execute("""
         INSERT OR IGNORE INTO admins
-        (user_id, role, added_by, added_at)
+        (
+            user_id,
+            role,
+            added_by,
+            added_at
+        )
         VALUES (?, ?, ?, ?)
     """, (
         OWNER_ID,
         "owner",
         OWNER_ID,
-        now
+        current_time
     ))
 
     await db.commit()
-
     await db.close()
 
 
@@ -388,18 +341,24 @@ async def init_db():
 
 async def create_or_update_user(
     user_id: int,
-    username: str | None,
-    first_name: str | None
+    username: str | None = None,
+    first_name: str | None = None,
+    last_name: str | None = None
 ):
 
     db = await get_db()
 
-    now = datetime.now().isoformat()
+    current_time = now()
 
-    existing = await db.execute_fetchone(
-        "SELECT user_id FROM users WHERE user_id = ?",
-        (user_id,)
-    )
+    cursor = await db.execute("""
+        SELECT user_id
+        FROM users
+        WHERE user_id = ?
+    """, (
+        user_id,
+    ))
+
+    existing = await cursor.fetchone()
 
     if existing:
 
@@ -408,12 +367,14 @@ async def create_or_update_user(
             SET
                 username = ?,
                 first_name = ?,
+                last_name = ?,
                 last_seen = ?
             WHERE user_id = ?
         """, (
             username,
             first_name,
-            now,
+            last_name,
+            current_time,
             user_id
         ))
 
@@ -425,21 +386,45 @@ async def create_or_update_user(
                 user_id,
                 username,
                 first_name,
+                last_name,
                 balance,
                 joined_at,
                 last_seen
             )
-            VALUES (?, ?, ?, 0, ?, ?)
+            VALUES (?, ?, ?, ?, 0, ?, ?)
         """, (
             user_id,
             username,
             first_name,
-            now,
-            now
+            last_name,
+            current_time,
+            current_time
         ))
 
     await db.commit()
     await db.close()
+
+
+# ============================================================
+# CREATE USER
+# Compatibility for handlers.py
+# ============================================================
+
+async def create_user(
+    user_id: int,
+    username: str | None = None,
+    first_name: str | None = None,
+    last_name: str | None = None
+):
+
+    await create_or_update_user(
+        user_id=user_id,
+        username=username,
+        first_name=first_name,
+        last_name=last_name
+    )
+
+    return await get_user(user_id)
 
 
 # ============================================================
@@ -454,13 +439,36 @@ async def get_user(user_id: int):
         SELECT *
         FROM users
         WHERE user_id = ?
-    """, (user_id,))
+    """, (
+        user_id,
+    ))
 
     user = await cursor.fetchone()
 
     await db.close()
 
     return user
+
+
+# ============================================================
+# GET ALL USERS
+# ============================================================
+
+async def get_all_users():
+
+    db = await get_db()
+
+    cursor = await db.execute("""
+        SELECT *
+        FROM users
+        ORDER BY joined_at DESC
+    """)
+
+    users = await cursor.fetchall()
+
+    await db.close()
+
+    return users
 
 
 # ============================================================
@@ -475,7 +483,9 @@ async def get_balance(user_id: int):
         SELECT balance
         FROM users
         WHERE user_id = ?
-    """, (user_id,))
+    """, (
+        user_id,
+    ))
 
     row = await cursor.fetchone()
 
@@ -506,20 +516,26 @@ async def change_balance(
         SELECT balance
         FROM users
         WHERE user_id = ?
-    """, (user_id,))
+    """, (
+        user_id,
+    ))
 
     row = await cursor.fetchone()
 
     if not row:
+
         await db.close()
+
         return False, "USER_NOT_FOUND"
 
     before = float(row["balance"])
-    after = before + amount
 
-    # Prevent negative balance
+    after = before + float(amount)
+
     if after < 0:
+
         await db.close()
+
         return False, "INSUFFICIENT_BALANCE"
 
     await db.execute("""
@@ -554,7 +570,7 @@ async def change_balance(
         reference_id,
         description,
         admin_id,
-        datetime.now().isoformat()
+        now()
     ))
 
     await db.commit()
@@ -588,12 +604,16 @@ async def ban_user(
     await db.commit()
     await db.close()
 
+    return True
+
 
 # ============================================================
 # UNBAN USER
 # ============================================================
 
-async def unban_user(user_id: int):
+async def unban_user(
+    user_id: int
+):
 
     db = await get_db()
 
@@ -603,17 +623,23 @@ async def unban_user(user_id: int):
             is_banned = 0,
             ban_reason = NULL
         WHERE user_id = ?
-    """, (user_id,))
+    """, (
+        user_id,
+    ))
 
     await db.commit()
     await db.close()
 
+    return True
+
 
 # ============================================================
-# CHECK BANNED
+# CHECK BAN
 # ============================================================
 
-async def is_banned(user_id: int):
+async def is_banned(
+    user_id: int
+):
 
     user = await get_user(user_id)
 
@@ -624,10 +650,13 @@ async def is_banned(user_id: int):
 
 
 # ============================================================
-# GET SETTING
+# SETTINGS
 # ============================================================
 
-async def get_setting(key: str, default=None):
+async def get_setting(
+    key: str,
+    default=None
+):
 
     db = await get_db()
 
@@ -635,7 +664,9 @@ async def get_setting(key: str, default=None):
         SELECT value
         FROM settings
         WHERE key = ?
-    """, (key,))
+    """, (
+        key,
+    ))
 
     row = await cursor.fetchone()
 
@@ -647,19 +678,24 @@ async def get_setting(key: str, default=None):
     return row["value"]
 
 
-# ============================================================
-# SET SETTING
-# ============================================================
-
-async def set_setting(key: str, value: str):
+async def set_setting(
+    key: str,
+    value: str
+):
 
     db = await get_db()
 
     await db.execute("""
-        INSERT INTO settings (key, value)
+        INSERT INTO settings
+        (
+            key,
+            value
+        )
         VALUES (?, ?)
+
         ON CONFLICT(key)
-        DO UPDATE SET value = excluded.value
+        DO UPDATE SET
+            value = excluded.value
     """, (
         key,
         value
@@ -668,12 +704,16 @@ async def set_setting(key: str, value: str):
     await db.commit()
     await db.close()
 
+    return True
+
 
 # ============================================================
 # ADMIN CHECK
 # ============================================================
 
-async def is_admin(user_id: int):
+async def is_admin(
+    user_id: int
+):
 
     db = await get_db()
 
@@ -681,7 +721,9 @@ async def is_admin(user_id: int):
         SELECT user_id
         FROM admins
         WHERE user_id = ?
-    """, (user_id,))
+    """, (
+        user_id,
+    ))
 
     row = await cursor.fetchone()
 
@@ -694,7 +736,9 @@ async def is_admin(user_id: int):
 # ADMIN ROLE
 # ============================================================
 
-async def get_admin_role(user_id: int):
+async def get_admin_role(
+    user_id: int
+):
 
     db = await get_db()
 
@@ -702,7 +746,9 @@ async def get_admin_role(user_id: int):
         SELECT role
         FROM admins
         WHERE user_id = ?
-    """, (user_id,))
+    """, (
+        user_id,
+    ))
 
     row = await cursor.fetchone()
 
@@ -712,3 +758,288 @@ async def get_admin_role(user_id: int):
         return None
 
     return row["role"]
+
+
+# ============================================================
+# ADD ADMIN
+# ============================================================
+
+async def add_admin(
+    user_id: int,
+    role: str = "admin",
+    added_by: int | None = None
+):
+
+    db = await get_db()
+
+    await db.execute("""
+        INSERT OR REPLACE INTO admins
+        (
+            user_id,
+            role,
+            added_by,
+            added_at
+        )
+        VALUES (?, ?, ?, ?)
+    """, (
+        user_id,
+        role,
+        added_by,
+        now()
+    ))
+
+    await db.commit()
+    await db.close()
+
+    return True
+
+
+# ============================================================
+# REMOVE ADMIN
+# ============================================================
+
+async def remove_admin(
+    user_id: int
+):
+
+    if user_id == OWNER_ID:
+        return False
+
+    db = await get_db()
+
+    await db.execute("""
+        DELETE FROM admins
+        WHERE user_id = ?
+    """, (
+        user_id,
+    ))
+
+    await db.commit()
+    await db.close()
+
+    return True
+
+
+# ============================================================
+# GET ADMINS
+# ============================================================
+
+async def get_admins():
+
+    db = await get_db()
+
+    cursor = await db.execute("""
+        SELECT *
+        FROM admins
+        ORDER BY added_at DESC
+    """)
+
+    admins = await cursor.fetchall()
+
+    await db.close()
+
+    return admins
+
+
+# ============================================================
+# LOG ADMIN ACTION
+# ============================================================
+
+async def add_admin_log(
+    admin_id: int,
+    action: str,
+    target_user_id: int | None = None,
+    reference_id: str | None = None,
+    details: str = ""
+):
+
+    db = await get_db()
+
+    await db.execute("""
+        INSERT INTO admin_logs
+        (
+            admin_id,
+            action,
+            target_user_id,
+            reference_id,
+            details,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        admin_id,
+        action,
+        target_user_id,
+        reference_id,
+        details,
+        now()
+    ))
+
+    await db.commit()
+    await db.close()
+
+
+# ============================================================
+# SEARCH USERS
+# ============================================================
+
+async def search_users(
+    search: str
+):
+
+    db = await get_db()
+
+    search = str(search).strip()
+
+    cursor = await db.execute("""
+        SELECT *
+        FROM users
+        WHERE
+            CAST(user_id AS TEXT) = ?
+            OR username LIKE ?
+            OR first_name LIKE ?
+        ORDER BY joined_at DESC
+        LIMIT 50
+    """, (
+        search,
+        f"%{search}%",
+        f"%{search}%"
+    ))
+
+    users = await cursor.fetchall()
+
+    await db.close()
+
+    return users
+
+
+# ============================================================
+# USER STATS
+# ============================================================
+
+async def get_user_stats(
+    user_id: int
+):
+
+    db = await get_db()
+
+    cursor = await db.execute("""
+        SELECT
+            COUNT(*) AS total_orders,
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN status = 'completed'
+                        THEN price
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS total_spent
+        FROM orders
+        WHERE user_id = ?
+    """, (
+        user_id,
+    ))
+
+    row = await cursor.fetchone()
+
+    await db.close()
+
+    return {
+        "orders": int(row["total_orders"] or 0),
+        "spent": float(row["total_spent"] or 0)
+    }
+
+
+# ============================================================
+# DASHBOARD STATS
+# ============================================================
+
+async def get_dashboard_stats():
+
+    db = await get_db()
+
+    async def scalar(query):
+
+        cursor = await db.execute(query)
+
+        row = await cursor.fetchone()
+
+        if not row:
+            return 0
+
+        return row[0] or 0
+
+    users = await scalar("""
+        SELECT COUNT(*)
+        FROM users
+    """)
+
+    active = await scalar("""
+        SELECT COUNT(*)
+        FROM users
+        WHERE is_banned = 0
+    """)
+
+    banned = await scalar("""
+        SELECT COUNT(*)
+        FROM users
+        WHERE is_banned = 1
+    """)
+
+    deposits = await scalar("""
+        SELECT COALESCE(SUM(amount), 0)
+        FROM deposits
+        WHERE status = 'approved'
+    """)
+
+    sales = await scalar("""
+        SELECT COALESCE(SUM(price), 0)
+        FROM orders
+        WHERE status = 'completed'
+    """)
+
+    orders = await scalar("""
+        SELECT COUNT(*)
+        FROM orders
+    """)
+
+    pending_orders = await scalar("""
+        SELECT COUNT(*)
+        FROM orders
+        WHERE status IN ('pending', 'processing')
+    """)
+
+    completed_orders = await scalar("""
+        SELECT COUNT(*)
+        FROM orders
+        WHERE status = 'completed'
+    """)
+
+    pending_deposits = await scalar("""
+        SELECT COUNT(*)
+        FROM deposits
+        WHERE status = 'pending'
+    """)
+
+    offers = await scalar("""
+        SELECT COUNT(*)
+        FROM offers
+        WHERE is_active = 1
+    """)
+
+    await db.close()
+
+    return {
+        "users": int(users),
+        "active": int(active),
+        "banned": int(banned),
+        "deposits": float(deposits),
+        "sales": float(sales),
+        "orders": int(orders),
+        "pending_orders": int(pending_orders),
+        "completed_orders": int(completed_orders),
+        "pending_deposits": int(pending_deposits),
+        "offers": int(offers),
+    }
